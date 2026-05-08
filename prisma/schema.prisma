@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  name      String
+  key       String   @unique
+  createdAt DateTime @default(now())
+  lastUsed  DateTime?
+  userId    String   @default("default_user")
+
+  usageLogs UsageLog[]
+}
+
+model UsageLog {
+  id        String   @id @default(cuid())
+  apiKeyId  String
+  endpoint  String
+  status    Int
+  createdAt DateTime @default(now())
+
+  apiKey    ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+}

@@ -1,65 +1,97 @@
-import Image from "next/image";
+import { getApiKeys, createApiKey, deleteApiKey } from './actions';
+import { Key, Trash2, Plus, Terminal } from 'lucide-react';
+import CopyButton from '@/components/CopyButton';
 
-export default function Home() {
+export default async function Dashboard() {
+  const apiKeys = await getApiKeys();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="container">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl">Fashion-VDM Developer Dashboard</h1>
+      </div>
+
+      <div className="card mb-8">
+        <h2 className="text-xl mb-4">Generate New API Key</h2>
+        <form action={createApiKey} className="flex gap-4 items-center">
+          <input
+            type="text"
+            name="name"
+            placeholder="Key Name (e.g., Production App)"
+            className="input"
+            required
+            autoComplete="off"
+          />
+          <button type="submit" className="btn btn-primary">
+            <Plus size={18} style={{ marginRight: '0.5rem' }} />
+            Create Key
+          </button>
+        </form>
+      </div>
+
+      <div className="card mb-8">
+        <h2 className="text-xl mb-4">Your API Keys</h2>
+        {apiKeys.length === 0 ? (
+          <p className="text-muted">You haven't generated any API keys yet.</p>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>API Key</th>
+                  <th>Created</th>
+                  <th>Last Used</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {apiKeys.map((key) => (
+                  <tr key={key.id}>
+                    <td style={{ fontWeight: 500 }}>{key.name}</td>
+                    <td style={{ fontFamily: 'monospace', display: 'flex', alignItems: 'center' }}>
+                      {key.key.slice(0, 8)}...{key.key.slice(-4)}
+                      <CopyButton text={key.key} />
+                    </td>
+                    <td className="text-muted">
+                      {key.createdAt.toLocaleDateString()}
+                    </td>
+                    <td className="text-muted">
+                      {key.lastUsed ? key.lastUsed.toLocaleDateString() : 'Never'}
+                    </td>
+                    <td>
+                      <form action={deleteApiKey.bind(null, key.id)}>
+                        <button type="submit" className="btn btn-danger" aria-label="Revoke key">
+                          <Trash2 size={18} />
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ backgroundColor: 'var(--background)' }}>
+        <h2 className="text-xl mb-4 flex items-center">
+          <Terminal size={20} style={{ marginRight: '0.5rem' }} />
+          How to use your API
+        </h2>
+        <p className="mb-4 text-muted">
+          Use the API key to authenticate requests to the `/api/v1/generate-tryon` endpoint. Pass the key in the `Authorization` header as a Bearer token.
+        </p>
+        <pre style={{ background: 'var(--card)', padding: '1rem', borderRadius: '0.5rem', overflowX: 'auto', border: '1px solid var(--border)', fontSize: '0.9rem' }}>
+<code>{`curl -X POST http://localhost:3000/api/v1/generate-tryon \\
+  -H "Authorization: Bearer <YOUR_API_KEY>" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "image_url": "https://example.com/garment.jpg",
+    "video_url": "https://example.com/person.mp4"
+  }'`}</code>
+        </pre>
+      </div>
     </div>
   );
 }
