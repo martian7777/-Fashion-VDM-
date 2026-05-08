@@ -1,4 +1,8 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Fashion-VDM API SaaS Platform
+
+This is a full-stack Next.js application that provides an API-as-a-Service gateway for Virtual Try-On models (like IDM-VTON or Fashion-VDM).
+
+It includes a developer dashboard for generating API keys, a SQLite database for secure credential storage, and an API route that proxies authenticated requests to an upstream Hugging Face Inference Endpoint.
 
 ## Getting Started
 
@@ -8,29 +12,56 @@ First, run the development server:
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the Developer Dashboard. You can generate a new API key here.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Configuration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Before making API calls, rename or create a `.env` file in the root directory and add your upstream model configuration:
 
-## Learn More
+```env
+# The token for the upstream provider (Hugging Face or Replicate)
+HUGGING_FACE_TOKEN="hf_your_token_here"
 
-To learn more about Next.js, take a look at the following resources:
+# The endpoint of your Dedicated Inference Endpoint or Third-Party API
+HF_ENDPOINT_URL="https://api-inference.huggingface.co/models/Fashion-VDM" 
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How to use the API
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+You can call your proxy API endpoint using the key generated in your dashboard:
 
-## Deploy on Vercel
+```bash
+curl -X POST http://localhost:3000/api/v1/generate-tryon \
+  -H "Authorization: Bearer <YOUR_GENERATED_API_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image_url": "https://example.com/garment.jpg",
+    "video_url": "https://example.com/person.mp4"
+  }'
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Future Enhancements & Roadmap
+
+This project is currently an MVP. To evolve it into a fully production-ready SaaS, the following enhancements should be implemented:
+
+1. **Stripe Billing Integration:**
+   - Integrate Stripe Metered Billing to charge users per generation.
+   - Add a billing portal to the dashboard for users to add their credit cards and view invoices.
+
+2. **Upstream Provider Selection:**
+   - Switch from the free Hugging Face Serverless API to a **Dedicated Hugging Face Inference Endpoint** (since VTON models are too large for the free tier).
+   - Alternatively, integrate with Replicate or Fal.ai APIs for stable, pay-per-second generation.
+
+3. **Secure API Key Hashing:**
+   - Currently, API keys are stored in plain text for easy viewing in the MVP. In production, keys should be hashed (e.g., using bcrypt or SHA-256) before storing in the database. 
+   - Users should only be able to see the key *once* upon generation.
+
+4. **Production Database:**
+   - Migrate from the local SQLite `dev.db` to a robust production database like PostgreSQL (using Supabase, Neon, or Vercel Postgres).
+
+5. **User Authentication:**
+   - Add a full user authentication system (e.g., NextAuth.js, Clerk, or Supabase Auth) so multiple users can sign up, log in, and manage their own separate keys and billing securely.
