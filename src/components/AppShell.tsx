@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Activity, BookOpen, CreditCard, KeyRound, LayoutDashboard, Sparkles } from 'lucide-react';
 
 const navItems = [
-  { href: '/', label: 'Overview', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/keys', label: 'API Keys', icon: KeyRound },
   { href: '/usage', label: 'Usage', icon: Activity },
   { href: '/billing', label: 'Billing', icon: CreditCard },

@@ -22,7 +22,7 @@ export async function createApiKey(formData: FormData) {
     },
   });
 
-  revalidatePath('/');
+  revalidatePath('/dashboard');
   revalidatePath('/keys');
 }
 
@@ -30,7 +30,7 @@ export async function deleteApiKey(id: string) {
   await prisma.apiKey.delete({
     where: { id },
   });
-  revalidatePath('/');
+  revalidatePath('/dashboard');
   revalidatePath('/keys');
 }
 

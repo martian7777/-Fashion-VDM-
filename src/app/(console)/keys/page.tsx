@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react';
 import CopyButton from '@/components/CopyButton';
-import { createApiKey, deleteApiKey, getApiKeys } from '../actions';
+import { createApiKey, deleteApiKey, getApiKeys } from '../../actions';
 
 export default async function KeysPage() {
   const apiKeys = await getApiKeys();

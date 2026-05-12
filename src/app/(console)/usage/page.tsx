@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, Gauge, TimerReset } from 'lucide-react';
-import { getRecentUsage, getUsageBreakdown } from '../actions';
+import { getRecentUsage, getUsageBreakdown } from '../../actions';
 
 export default async function UsagePage() {
   const [recentUsage, breakdown] = await Promise.all([
