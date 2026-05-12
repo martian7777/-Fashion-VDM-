@@ -1,45 +1,115 @@
-import { getApiKeys, createApiKey, deleteApiKey } from './actions';
-import { Key, Trash2, Plus, Terminal } from 'lucide-react';
+import { getApiKeys, getDashboardSummary, createApiKey, deleteApiKey } from './actions';
+import { BarChart3, CreditCard, KeyRound, Plus, Terminal, Trash2, Zap } from 'lucide-react';
 import CopyButton from '@/components/CopyButton';
 
 export default async function Dashboard() {
-  const apiKeys = await getApiKeys();
+  const [apiKeys, summary] = await Promise.all([
+    getApiKeys(),
+    getDashboardSummary(),
+  ]);
 
   return (
-    <div className="container">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl">Fashion-VDM Developer Dashboard</h1>
-      </div>
+    <main className="dashboard-shell">
+      <section className="topbar">
+        <div>
+          <p className="eyebrow">IDM-VTON API Control Center</p>
+          <h1>Developer Dashboard</h1>
+          <p className="lede">
+            Create access keys, track generation volume, and keep free traffic inside the quota gate.
+          </p>
+        </div>
+        <div className="plan-chip">
+          <Zap size={18} />
+          <span>Free keys include 10 requests</span>
+        </div>
+      </section>
 
-      <div className="card mb-8">
-        <h2 className="text-xl mb-4">Generate New API Key</h2>
-        <form action={createApiKey} className="flex gap-4 items-center">
-          <input
-            type="text"
-            name="name"
-            placeholder="Key Name (e.g., Production App)"
-            className="input"
-            required
-            autoComplete="off"
-          />
-          <button type="submit" className="btn btn-primary">
-            <Plus size={18} style={{ marginRight: '0.5rem' }} />
-            Create Key
-          </button>
-        </form>
-      </div>
+      <section className="metrics-grid">
+        <article className="metric-panel">
+          <KeyRound size={20} />
+          <span>Active API Keys</span>
+          <strong>{summary.totalKeys}</strong>
+        </article>
+        <article className="metric-panel">
+          <BarChart3 size={20} />
+          <span>Total Requests</span>
+          <strong>{summary.totalRequests}</strong>
+        </article>
+        <article className="metric-panel">
+          <Zap size={20} />
+          <span>Free Requests Left</span>
+          <strong>{summary.remainingFreeRequests}</strong>
+        </article>
+        <article className="metric-panel">
+          <CreditCard size={20} />
+          <span>Exhausted Keys</span>
+          <strong>{summary.exhaustedKeys}</strong>
+        </article>
+      </section>
 
-      <div className="card mb-8">
-        <h2 className="text-xl mb-4">Your API Keys</h2>
+      <section className="dashboard-grid">
+        <div className="panel stack">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Access</p>
+              <h2>Create API Key</h2>
+            </div>
+          </div>
+          <form action={createApiKey} className="key-form">
+            <input
+              type="text"
+              name="name"
+              placeholder="Key name"
+              className="input"
+              required
+              autoComplete="off"
+            />
+            <button type="submit" className="btn btn-primary">
+              <Plus size={18} />
+              Create Key
+            </button>
+          </form>
+        </div>
+
+        <div className="panel pricing-panel">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Plans</p>
+              <h2>Usage Policy</h2>
+            </div>
+          </div>
+          <div className="plan-row">
+            <span>Free</span>
+            <strong>10 requests per key</strong>
+          </div>
+          <div className="plan-row">
+            <span>Paid</span>
+            <strong>Required for 30+ request workloads</strong>
+          </div>
+          <p className="muted-copy">
+            The route enforces the free quota today. Billing can attach to the same plan field later without rewriting the key or usage model.
+          </p>
+        </div>
+      </section>
+
+      <section className="panel table-panel">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Keys</p>
+            <h2>API Key Inventory</h2>
+          </div>
+        </div>
         {apiKeys.length === 0 ? (
-          <p className="text-muted">You haven't generated any API keys yet.</p>
+          <p className="muted-copy">No API keys exist yet.</p>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
                   <th>Name</th>
                   <th>API Key</th>
+                  <th>Plan</th>
+                  <th>Usage</th>
                   <th>Created</th>
                   <th>Last Used</th>
                   <th>Action</th>
@@ -48,15 +118,22 @@ export default async function Dashboard() {
               <tbody>
                 {apiKeys.map((key) => (
                   <tr key={key.id}>
-                    <td style={{ fontWeight: 500 }}>{key.name}</td>
-                    <td style={{ fontFamily: 'monospace', display: 'flex', alignItems: 'center' }}>
-                      {key.key.slice(0, 8)}...{key.key.slice(-4)}
-                      <CopyButton text={key.key} />
+                    <td className="primary-cell">{key.name}</td>
+                    <td>
+                      <div className="key-cell">
+                        <code>{key.key.slice(0, 8)}...{key.key.slice(-4)}</code>
+                        <CopyButton text={key.key} />
+                      </div>
                     </td>
-                    <td className="text-muted">
-                      {key.createdAt.toLocaleDateString()}
+                    <td><span className="badge">{key.plan}</span></td>
+                    <td>
+                      <div className="usage-cell">
+                        <strong>{key.requestsUsed}/{key.quota}</strong>
+                        <span>{key.remainingRequests} left</span>
+                      </div>
                     </td>
-                    <td className="text-muted">
+                    <td className="muted-cell">{key.createdAt.toLocaleDateString()}</td>
+                    <td className="muted-cell">
                       {key.lastUsed ? key.lastUsed.toLocaleDateString() : 'Never'}
                     </td>
                     <td>
@@ -72,26 +149,38 @@ export default async function Dashboard() {
             </table>
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="card" style={{ backgroundColor: 'var(--background)' }}>
-        <h2 className="text-xl mb-4 flex items-center">
-          <Terminal size={20} style={{ marginRight: '0.5rem' }} />
-          How to use your API
-        </h2>
-        <p className="mb-4 text-muted">
-          Use the API key to authenticate requests to the `/api/v1/generate-tryon` endpoint. Pass the key in the `Authorization` header as a Bearer token.
+      <section className="panel code-panel">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">API</p>
+            <h2 className="inline-heading">
+              <Terminal size={20} />
+              Generate a Try-On
+            </h2>
+          </div>
+        </div>
+        <p className="muted-copy">
+          Send a Bearer key to `/api/v1/generate-tryon`. The body is forwarded to the IDM-VTON `tryon` endpoint as Gradio queue data.
         </p>
-        <pre style={{ background: 'var(--card)', padding: '1rem', borderRadius: '0.5rem', overflowX: 'auto', border: '1px solid var(--border)', fontSize: '0.9rem' }}>
+        <pre className="code-block">
 <code>{`curl -X POST http://localhost:3000/api/v1/generate-tryon \\
   -H "Authorization: Bearer <YOUR_API_KEY>" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "image_url": "https://example.com/garment.jpg",
-    "video_url": "https://example.com/person.mp4"
+    "data": [
+      { "background": "human-image-payload", "layers": [], "composite": null },
+      "garment-image-payload",
+      "Short sleeve round neck t-shirt",
+      true,
+      false,
+      30,
+      42
+    ]
   }'`}</code>
         </pre>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

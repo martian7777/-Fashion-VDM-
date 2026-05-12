@@ -24,7 +24,7 @@ export default function CopyButton({ text }: { text: string }) {
       style={{ padding: '0.25rem 0.5rem', marginLeft: '0.5rem', background: 'transparent', border: '1px solid var(--border)' }}
       aria-label="Copy to clipboard"
     >
-      {copied ? <Check size={16} className="text-success" /> : <Copy size={16} className="text-muted" />}
+      {copied ? <Check size={16} color="var(--success)" /> : <Copy size={16} color="var(--text-muted)" />}
     </button>
   );
 }

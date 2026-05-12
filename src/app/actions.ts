@@ -35,6 +35,35 @@ export async function deleteApiKey(id: string) {
 export async function getApiKeys() {
   const keys = await prisma.apiKey.findMany({
     orderBy: { createdAt: 'desc' },
+    include: {
+      usageLogs: {
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          status: true,
+          createdAt: true,
+        },
+      },
+    },
   });
-  return keys;
+
+  return keys.map((key) => ({
+    ...key,
+    requestsUsed: key.usageLogs.filter((entry) => entry.status !== 429).length,
+    remainingRequests: Math.max(key.quota - key.usageLogs.filter((entry) => entry.status !== 429).length, 0),
+  }));
+}
+
+export async function getDashboardSummary() {
+  const keys = await getApiKeys();
+  const totalRequests = keys.reduce((sum, key) => sum + key.requestsUsed, 0);
+  const remainingFreeRequests = keys.reduce((sum, key) => sum + key.remainingRequests, 0);
+  const exhaustedKeys = keys.filter((key) => key.remainingRequests === 0).length;
+
+  return {
+    totalKeys: keys.length,
+    totalRequests,
+    remainingFreeRequests,
+    exhaustedKeys,
+  };
 }

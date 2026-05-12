@@ -14,6 +14,8 @@ model ApiKey {
   createdAt DateTime @default(now())
   lastUsed  DateTime?
   userId    String   @default("default_user")
+  plan      String   @default("FREE")
+  quota     Int      @default(10)
 
   usageLogs UsageLog[]
 }

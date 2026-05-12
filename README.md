@@ -1,8 +1,8 @@
-# Fashion-VDM API SaaS Platform
+# IDM-VTON API Dashboard
 
-This is a full-stack Next.js application that provides an API-as-a-Service gateway for Virtual Try-On models (like IDM-VTON or Fashion-VDM).
+This is a full-stack Next.js application that provides an API-as-a-Service gateway for the Hugging Face `yisol/IDM-VTON` Space.
 
-It includes a developer dashboard for generating API keys, a SQLite database for secure credential storage, and an API route that proxies authenticated requests to an upstream Hugging Face Inference Endpoint.
+It includes a developer dashboard for generating and deleting API keys, a SQLite database for request tracking, and an authenticated API route that enforces the free request quota before proxying requests to IDM-VTON.
 
 ## Getting Started
 
@@ -10,58 +10,44 @@ First, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the Developer Dashboard. You can generate a new API key here.
+Open `http://localhost:3000` with your browser to see the dashboard.
 
 ## Configuration
 
-Before making API calls, rename or create a `.env` file in the root directory and add your upstream model configuration:
+Create a `.env` file in the root directory:
 
 ```env
-# The token for the upstream provider (Hugging Face or Replicate)
+DATABASE_URL="file:./dev.db"
 HUGGING_FACE_TOKEN="hf_your_token_here"
-
-# The endpoint of your Dedicated Inference Endpoint or Third-Party API
-HF_ENDPOINT_URL="https://api-inference.huggingface.co/models/Fashion-VDM" 
+IDM_VTON_SPACE_URL="https://yisol-idm-vton.hf.space"
 ```
 
-## How to use the API
+`HUGGING_FACE_TOKEN` is optional for a public Space, but useful when authenticated Hugging Face access is preferred. `IDM_VTON_SPACE_URL` is also optional because the app defaults to the public IDM-VTON Space host.
 
-You can call your proxy API endpoint using the key generated in your dashboard:
+## Current Product Rules
+
+- Free API keys are created with a `10` request quota.
+- The proxy route returns `429` once a free key is exhausted.
+- The dashboard presents `30+` request workloads as paid-tier territory.
+- Billing itself is not implemented yet; the current schema leaves room for attaching it to each key's `plan` and `quota`.
+
+## API Example
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/generate-tryon \
   -H "Authorization: Bearer <YOUR_GENERATED_API_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
-    "image_url": "https://example.com/garment.jpg",
-    "video_url": "https://example.com/person.mp4"
+    "data": [
+      { "background": "human-image-payload", "layers": [], "composite": null },
+      "garment-image-payload",
+      "Short sleeve round neck t-shirt",
+      true,
+      false,
+      30,
+      42
+    ]
   }'
 ```
-
----
-
-## Future Enhancements & Roadmap
-
-This project is currently an MVP. To evolve it into a fully production-ready SaaS, the following enhancements should be implemented:
-
-1. **Stripe Billing Integration:**
-   - Integrate Stripe Metered Billing to charge users per generation.
-   - Add a billing portal to the dashboard for users to add their credit cards and view invoices.
-
-2. **Upstream Provider Selection:**
-   - Switch from the free Hugging Face Serverless API to a **Dedicated Hugging Face Inference Endpoint** (since VTON models are too large for the free tier).
-   - Alternatively, integrate with Replicate or Fal.ai APIs for stable, pay-per-second generation.
-
-3. **Secure API Key Hashing:**
-   - Currently, API keys are stored in plain text for easy viewing in the MVP. In production, keys should be hashed (e.g., using bcrypt or SHA-256) before storing in the database. 
-   - Users should only be able to see the key *once* upon generation.
-
-4. **Production Database:**
-   - Migrate from the local SQLite `dev.db` to a robust production database like PostgreSQL (using Supabase, Neon, or Vercel Postgres).
-
-5. **User Authentication:**
-   - Add a full user authentication system (e.g., NextAuth.js, Clerk, or Supabase Auth) so multiple users can sign up, log in, and manage their own separate keys and billing securely.
