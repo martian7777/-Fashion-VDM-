@@ -1,26 +1,41 @@
-import { getApiKeys, getDashboardSummary, createApiKey, deleteApiKey } from './actions';
-import { BarChart3, CreditCard, KeyRound, Plus, Terminal, Trash2, Zap } from 'lucide-react';
-import CopyButton from '@/components/CopyButton';
+import Link from 'next/link';
+import { Activity, ArrowRight, CreditCard, KeyRound, ShieldCheck, Sparkles, Zap } from 'lucide-react';
+import { getApiKeys, getDashboardSummary, getRecentUsage, getUsageBreakdown } from './actions';
 
-export default async function Dashboard() {
-  const [apiKeys, summary] = await Promise.all([
+export default async function OverviewPage() {
+  const [keys, summary, recentUsage, breakdown] = await Promise.all([
     getApiKeys(),
     getDashboardSummary(),
+    getRecentUsage(),
+    getUsageBreakdown(),
   ]);
+
+  const newestKey = keys[0];
 
   return (
     <main className="dashboard-shell">
-      <section className="topbar">
+      <section className="page-hero split-hero">
         <div>
-          <p className="eyebrow">IDM-VTON API Control Center</p>
-          <h1>Developer Dashboard</h1>
+          <p className="eyebrow">Overview</p>
+          <h1>Virtual try-on traffic, keys, and monetization in one workspace.</h1>
           <p className="lede">
-            Create access keys, track generation volume, and keep free traffic inside the quota gate.
+            Monitor the IDM-VTON gateway, keep free usage capped, and move developers toward paid plans when request volume grows.
           </p>
+          <div className="button-row">
+            <Link href="/keys" className="btn btn-primary">
+              <KeyRound size={18} />
+              Manage keys
+            </Link>
+            <Link href="/playground" className="btn btn-secondary">
+              <Sparkles size={18} />
+              Open playground
+            </Link>
+          </div>
         </div>
-        <div className="plan-chip">
-          <Zap size={18} />
-          <span>Free keys include 10 requests</span>
+        <div className="hero-status">
+          <span>Latest access key</span>
+          <strong>{newestKey?.name ?? 'No keys yet'}</strong>
+          <p>{newestKey ? `${newestKey.remainingRequests} requests remaining` : 'Create a key to begin testing the gateway.'}</p>
         </div>
       </section>
 
@@ -31,7 +46,7 @@ export default async function Dashboard() {
           <strong>{summary.totalKeys}</strong>
         </article>
         <article className="metric-panel">
-          <BarChart3 size={20} />
+          <Activity size={20} />
           <span>Total Requests</span>
           <strong>{summary.totalRequests}</strong>
         </article>
@@ -42,144 +57,63 @@ export default async function Dashboard() {
         </article>
         <article className="metric-panel">
           <CreditCard size={20} />
-          <span>Exhausted Keys</span>
-          <strong>{summary.exhaustedKeys}</strong>
+          <span>Quota Blocks</span>
+          <strong>{breakdown.quotaBlocks}</strong>
         </article>
       </section>
 
-      <section className="dashboard-grid">
+      <section className="overview-grid">
         <div className="panel stack">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Access</p>
-              <h2>Create API Key</h2>
+              <p className="eyebrow">Operations</p>
+              <h2>Gateway health</h2>
             </div>
           </div>
-          <form action={createApiKey} className="key-form">
-            <input
-              type="text"
-              name="name"
-              placeholder="Key name"
-              className="input"
-              required
-              autoComplete="off"
-            />
-            <button type="submit" className="btn btn-primary">
-              <Plus size={18} />
-              Create Key
-            </button>
-          </form>
+          <div className="status-list">
+            <div className="status-row">
+              <ShieldCheck size={18} />
+              <span>Successful upstream calls</span>
+              <strong>{breakdown.successfulRequests}</strong>
+            </div>
+            <div className="status-row">
+              <Activity size={18} />
+              <span>Failed upstream calls</span>
+              <strong>{breakdown.failedRequests}</strong>
+            </div>
+            <div className="status-row">
+              <Zap size={18} />
+              <span>Keys near free-limit exhaustion</span>
+              <strong>{breakdown.keysNearLimit}</strong>
+            </div>
+          </div>
         </div>
 
-        <div className="panel pricing-panel">
+        <div className="panel stack">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Plans</p>
-              <h2>Usage Policy</h2>
+              <p className="eyebrow">Recent Traffic</p>
+              <h2>Latest requests</h2>
             </div>
+            <Link href="/usage" className="text-link">
+              View usage
+              <ArrowRight size={16} />
+            </Link>
           </div>
-          <div className="plan-row">
-            <span>Free</span>
-            <strong>10 requests per key</strong>
-          </div>
-          <div className="plan-row">
-            <span>Paid</span>
-            <strong>Required for 30+ request workloads</strong>
-          </div>
-          <p className="muted-copy">
-            The route enforces the free quota today. Billing can attach to the same plan field later without rewriting the key or usage model.
-          </p>
-        </div>
-      </section>
-
-      <section className="panel table-panel">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Keys</p>
-            <h2>API Key Inventory</h2>
+          <div className="compact-list">
+            {recentUsage.length === 0 ? (
+              <p className="muted-copy">No request activity has been recorded yet.</p>
+            ) : recentUsage.slice(0, 5).map((entry) => (
+              <div key={entry.id} className="compact-row">
+                <div>
+                  <strong>{entry.apiKey.name}</strong>
+                  <span>{entry.createdAt.toLocaleString()}</span>
+                </div>
+                <span className={`status-pill status-${entry.status >= 400 ? 'error' : 'ok'}`}>{entry.status}</span>
+              </div>
+            ))}
           </div>
         </div>
-        {apiKeys.length === 0 ? (
-          <p className="muted-copy">No API keys exist yet.</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>API Key</th>
-                  <th>Plan</th>
-                  <th>Usage</th>
-                  <th>Created</th>
-                  <th>Last Used</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {apiKeys.map((key) => (
-                  <tr key={key.id}>
-                    <td className="primary-cell">{key.name}</td>
-                    <td>
-                      <div className="key-cell">
-                        <code>{key.key.slice(0, 8)}...{key.key.slice(-4)}</code>
-                        <CopyButton text={key.key} />
-                      </div>
-                    </td>
-                    <td><span className="badge">{key.plan}</span></td>
-                    <td>
-                      <div className="usage-cell">
-                        <strong>{key.requestsUsed}/{key.quota}</strong>
-                        <span>{key.remainingRequests} left</span>
-                      </div>
-                    </td>
-                    <td className="muted-cell">{key.createdAt.toLocaleDateString()}</td>
-                    <td className="muted-cell">
-                      {key.lastUsed ? key.lastUsed.toLocaleDateString() : 'Never'}
-                    </td>
-                    <td>
-                      <form action={deleteApiKey.bind(null, key.id)}>
-                        <button type="submit" className="btn btn-danger" aria-label="Revoke key">
-                          <Trash2 size={18} />
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="panel code-panel">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">API</p>
-            <h2 className="inline-heading">
-              <Terminal size={20} />
-              Generate a Try-On
-            </h2>
-          </div>
-        </div>
-        <p className="muted-copy">
-          Send a Bearer key to `/api/v1/generate-tryon`. The body is forwarded to the IDM-VTON `tryon` endpoint as Gradio queue data.
-        </p>
-        <pre className="code-block">
-<code>{`curl -X POST http://localhost:3000/api/v1/generate-tryon \\
-  -H "Authorization: Bearer <YOUR_API_KEY>" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "data": [
-      { "background": "human-image-payload", "layers": [], "composite": null },
-      "garment-image-payload",
-      "Short sleeve round neck t-shirt",
-      true,
-      false,
-      30,
-      42
-    ]
-  }'`}</code>
-        </pre>
       </section>
     </main>
   );

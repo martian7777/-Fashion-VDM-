@@ -23,6 +23,7 @@ export async function createApiKey(formData: FormData) {
   });
 
   revalidatePath('/');
+  revalidatePath('/keys');
 }
 
 export async function deleteApiKey(id: string) {
@@ -30,6 +31,7 @@ export async function deleteApiKey(id: string) {
     where: { id },
   });
   revalidatePath('/');
+  revalidatePath('/keys');
 }
 
 export async function getApiKeys() {
@@ -65,5 +67,44 @@ export async function getDashboardSummary() {
     totalRequests,
     remainingFreeRequests,
     exhaustedKeys,
+  };
+}
+
+export async function getRecentUsage() {
+  return prisma.usageLog.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 12,
+    include: {
+      apiKey: {
+        select: {
+          name: true,
+          plan: true,
+        },
+      },
+    },
+  });
+}
+
+export async function getUsageBreakdown() {
+  const [keys, usageLogs] = await Promise.all([
+    getApiKeys(),
+    prisma.usageLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        status: true,
+        createdAt: true,
+      },
+    }),
+  ]);
+
+  const successfulRequests = usageLogs.filter((entry) => entry.status >= 200 && entry.status < 300).length;
+  const failedRequests = usageLogs.filter((entry) => entry.status >= 400 && entry.status !== 429).length;
+  const quotaBlocks = usageLogs.filter((entry) => entry.status === 429).length;
+
+  return {
+    successfulRequests,
+    failedRequests,
+    quotaBlocks,
+    keysNearLimit: keys.filter((key) => key.remainingRequests <= 3).length,
   };
 }
